@@ -15,9 +15,20 @@ This repo is open to all to submit their own modules or patch others
 ```bash
 > ls GITROOT/mod/ultrabear/marketrep/
 README.md bloat.json cmd_marketrep.py
-> cat GITROOT/mod/ultrabear/marketrep/README.md
+```
+GITROOT/mod/ultrabear/marketrep/README.md
+```md
 # Market Rep
 This is a simple command module that implements tracking market rep of members
 # Min sonnet version
 - V1.2.3
+```
+GITROOT/mod/ultrabear/marketrep/bloat.json
+```json
+{
+	"commands":["mr-add", "mr-remove", "mr-addrole"],
+	"tables":["marketrep"],
+	"configs":["mr-roles"],
+	"events":[],
+}
 ```
