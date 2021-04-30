@@ -4,7 +4,7 @@ This repo is open to all to submit their own modules or patch others
 # Guidelines
 - Modules should be submitted as /mod/\<username\>/\<modulename\>/\*
 - Modules will include a README.md explaining:
-  - What they do 
+  - What they do
 	- Sonnet configs named
 	- Custom DB tables named
 	- Minimum sonnet version they require
