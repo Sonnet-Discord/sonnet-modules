@@ -2,29 +2,22 @@
 A repo of sonnet command modules and dlib modules that extend sonnet to more obscure tasks  
 This repo is open to all to submit their own modules or patch others
 # Guidelines
-- Modules should be submitted as /mod/\<username\>/\<modulename\>/\*
+- Modules will be submitted as /mod/\<username\>/\<modulename\>/\*
 - Modules will include a README.md explaining:
   - What they do
-  - Commands named if any
-  - Sonnet configs named if any
-  - Custom DB tables named if any
   - Minimum sonnet version they require
+- Modules will include bloat.json which documents:
+  - Command names used (`"commands":[]`)
+  - DB table names used (`"tables":[]`)
+  - Sonnet config names used (`"configs":[]`)
+  - Event names used (`"events":[]`)
 ## Example:
 ```bash
 > ls GITROOT/mod/ultrabear/marketrep/
-README.md cmd_marketrep.py
+README.md bloat.json cmd_marketrep.py
 > cat GITROOT/mod/ultrabear/marketrep/README.md
 # Market Rep
 This is a simple command module that implements tracking market rep of members
-# Commands defined
-- `mr-add`
-- `mr-remove`
-- `mr-addrole`
-# Configs used
-- `mr-roles`
-- `mr-enabled`
-# DB tables used
-- `marketrep`
 # Min sonnet version
 - V1.2.3
 ```
