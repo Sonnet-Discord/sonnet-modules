@@ -1,0 +1,6 @@
+{
+	"configs":["mr-roles"],
+	"tables":["marketrep"],
+	"commands":[],
+	"events":[]
+}
