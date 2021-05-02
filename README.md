@@ -11,6 +11,7 @@ This repo is open to all to submit their own modules or patch others
   - DB table names used (`"tables":[]`)
   - Sonnet config names used (`"configs":[]`)
   - Event names used (`"events":[]`)
+  - Config caches used (`"caches":[]`)
 ## Example:
 ```bash
 > ls GITROOT/mod/ultrabear/marketrep/
@@ -29,6 +30,7 @@ GITROOT/mod/ultrabear/marketrep/bloat.json
 	"commands":["mr-add", "mr-remove", "mr-addrole"],
 	"tables":["marketrep"],
 	"configs":["mr-roles"],
-	"events":[],
+	"caches":[],
 }
 ```
+Note: as no `events` are used by this module it omits writing the json key to an empty list, this holds true for all keys
