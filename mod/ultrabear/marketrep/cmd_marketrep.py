@@ -28,6 +28,25 @@ class ItsBelowZero(Exception):
     pass
 
 
+
+async def grab_member(message: discord.Message, args: List[str]) -> Optional[discord.Member]:
+
+    try:
+        member = message.guild.get_member(int(args[0].strip("<@&>")))
+    except IndexError:
+        await message.channel.send("ERROR: Not enough args")
+        return None
+    except ValueError:
+        await message.channel.send("ERROR: Input not valid int")
+        return None
+
+    if member:
+        return member
+    else:
+        await message.channel.send("ERROR: User not a member")
+        return None
+
+
 async def add_mr_role(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
 
     if len(args) < 2:
@@ -63,15 +82,37 @@ async def add_mr_role(message: discord.Message, args: List[str], client: discord
 
 async def increment_user(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
 
-
+    if not (member := await grab_member(message, args)):
+        return 1
 
     with db_hlapi(message.guild.id) as db:
-        db.inject_enum("marketrep", marketrep_table)
-        db.set_enum("marketrep", [userid, newrep])
+        table_name: str = "marketrep"
+        db.inject_enum(table_name, marketrep_table)
+
+        grep = db.grab_enum(table_name, str(member.id))
+
+        if grep:
+            newrep = grep[1] + 1
+        else:
+            newrep = 1
+
+        db.set_enum(table_name, [str(member.id), newrep])
 
 
-category_info: Dict[str, str] = {}
+category_info: Dict[str, str] = {
+    "name": "marketrep",
+    "pretty_name": "MarketRep",
+    "description": "Market Reputation control commands",
+}
 
-commands: Dict[str, Dict[str, Any]] = {}
+commands: Dict[str, Dict[str, Any]] = {
+    "mr-addrole": {
+        "pretty_name": "mr-addrole <id> <role>",
+        "description": "add a role to the marketrep rolebase",
+        "permission": "administrator",
+        "cache": "keep",
+        "execute": add_mr_role,
+    },
+}
 
 version_info: str = "MR-1.0.0"
