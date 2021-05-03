@@ -10,8 +10,10 @@ importlib.reload(lib_parsers)
 
 from lib_parsers import parse_channel_message
 
+from typing import List
 
-def getMessage(cmdlen, message):
+
+def getMessage(cmdlen: int, message: discord.Message) -> str:
     '''
     Takes in length of command defined by num of args + base command and original message and outputs the message after the arguments defined
     '''
@@ -25,17 +27,20 @@ def getMessage(cmdlen, message):
     return (" ".join(output))
 
 
-async def edit(message, args, client, **kwargs):
+async def edit(message: discord.Message, args: List[str],
+               client: discord.Client, **kwargs):
 
     try:
-        discord_message, nargs = await parse_channel_message(message, args, client)
+        discord_message, nargs = await parse_channel_message(
+            message, args, client)
     except lib_parsers.errors.message_parse_failure:
         return
 
     await discord_message.edit(content=getMessage(nargs, message))
 
 
-async def write(message, args, client, **kwargs):
+async def write(message: discord.Message, args: List[str],
+                client: discord.Client, **kwargs):
 
     log_channel = args[0].strip("<#>")
 
@@ -59,7 +64,11 @@ async def write(message, args, client, **kwargs):
     await discord_channel.send(getMessage(1, message))
 
 
-category_info = {'name': 'communication', 'pretty_name': 'Communication', 'description': 'Communication commands.'}
+category_info = {
+    'name': 'communication',
+    'pretty_name': 'Communication',
+    'description': 'Communication commands.'
+}
 
 commands = {
     'write': {
@@ -68,14 +77,14 @@ commands = {
         'permission': 'moderator',
         'cache': 'keep',
         'execute': write
-        },
+    },
     'edit': {
         'pretty_name': 'edit <channel> <message_id> <mesage>',
         'description': 'Edit a message sent by the bot',
         'permission': 'moderator',
         'cache': 'keep',
         'execute': edit
-        },
-    }
+    },
+}
 
 version_info = "Communicatons-1.2.0"
