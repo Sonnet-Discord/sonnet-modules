@@ -87,4 +87,4 @@ commands = {
     },
 }
 
-version_info = "Communicatons-1.2.0"
+version_info = "Communication-1.2.0"
