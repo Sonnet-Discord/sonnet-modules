@@ -32,7 +32,7 @@ class ItsBelowZero(Exception):
 async def grab_member(message: discord.Message, args: List[str]) -> Optional[discord.Member]:
 
     try:
-        member = message.guild.get_member(int(args[0].strip("<@&>")))
+        member = message.guild.get_member(int(args[0].strip("<@!>")))
     except IndexError:
         await message.channel.send("ERROR: Not enough args")
         return None
@@ -98,16 +98,17 @@ async def increment_user(message: discord.Message, args: List[str], client: disc
             newrep = grep[1] + 1
         else:
             newrep = 1
+            
+        rdb = json.loads(db.grab_config("mr-roles") or "{}")
 
         db.set_enum(table_name, [str(member.id), newrep])
 
-        rdb = json.loads(db.grab_config("mr-roles") or "{}")
 
     etypes: List[str] = []
 
     if (str(newrep) in rdb) and (r := message.guild.get_role(rdb[str(newrep)])):
         try:
-            member.add_roles(r)
+            await member.add_roles(r)
         except discord.errors.Forbidden:
             etypes.append("Could not add new rep role (403)")
     else:
@@ -115,7 +116,7 @@ async def increment_user(message: discord.Message, args: List[str], client: disc
 
     if (str(newrep-1) in rdb) and (r := message.guild.get_role(rdb[str(newrep-1)])):
         try:
-            member.remove_roles(r)
+            await member.remove_roles(r)
         except discord.errors.Forbidden:
             etypes.append("Could not remove old rep role (403)")
     else:
@@ -123,6 +124,56 @@ async def increment_user(message: discord.Message, args: List[str], client: disc
 
     await message.channel.send(f"Updated {member.mention}'s market rep to {newrep} in db" + bool(etypes)*f"\nErrors encountered: {', '.join(etypes)}")
 
+async def decrement_user(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
+
+    if not (member := await grab_member(message, args)):
+        return 1
+
+    newrep: int
+    rdb: Dict[str, int]
+
+    with db_hlapi(message.guild.id) as db:
+        table_name: str = "marketrep"
+        db.inject_enum(table_name, marketrep_table)
+
+        grep = db.grab_enum(table_name, str(member.id))
+
+        try:
+            rep_number: int = int(grep[1]-1)
+            if rep_number < 0: raise ItsBelowZero
+        except (ValueError, ItsBelowZero):
+            await message.channel.send("ERROR: User's market rep cannot be below zero.")
+            return 1
+
+        if grep and grep[1]-1 >= 0:
+            newrep = grep[1] - 1
+        else:
+            newrep = 0 
+
+        db.set_enum(table_name, [str(member.id), newrep])
+
+        rdb = json.loads(db.grab_config("mr-roles") or "{}")
+
+    etypes: List[str] = []
+
+    if newrep != 0:
+        if (str(newrep) in rdb) and (r := message.guild.get_role(rdb[str(newrep)])):
+            try:
+                await member.add_roles(r)
+            except discord.errors.Forbidden:
+                etypes.append("Could not add new rep role (403)")
+            else:
+                etypes.append("Could not add new rep role (404)")
+
+    if (str(newrep+1) in rdb) and (r := message.guild.get_role(rdb[str(newrep+1)])):
+        try:
+            await member.remove_roles(r)
+        except discord.errors.Forbidden:
+            etypes.append("Could not remove old rep role (403)")
+    else:
+        etypes.append("Could not remove old rep role (404)")
+
+    await message.channel.send(f"Updated {member.mention}'s market rep to {newrep} in db" + bool(etypes)*f"\nErrors encountered: {', '.join(etypes)}")
 
 
 category_info: Dict[str, str] = {
@@ -138,6 +189,20 @@ commands: Dict[str, Dict[str, Any]] = {
         "permission": "administrator",
         "cache": "keep",
         "execute": add_mr_role,
+    },
+    "mr-increp": {
+        "pretty_name": "mr-increp <mention/id>",
+        "description": "increment a users market rep",
+        "permission": "administrator",
+        "cache": "keep",
+        "execute": increment_user,
+    },
+    "mr-decrep": {
+        "pretty_name": "mr-decrep <mention/id>",
+        "description": "decrement a users market rep",
+        "permission": "administrator",
+        "cache": "keep",
+        "execute": decrement_user,
     },
 }
 
