@@ -85,6 +85,9 @@ async def increment_user(message: discord.Message, args: List[str], client: disc
     if not (member := await grab_member(message, args)):
         return 1
 
+    newrep: int
+    rdb: Dict[str, int]
+
     with db_hlapi(message.guild.id) as db:
         table_name: str = "marketrep"
         db.inject_enum(table_name, marketrep_table)
@@ -97,6 +100,29 @@ async def increment_user(message: discord.Message, args: List[str], client: disc
             newrep = 1
 
         db.set_enum(table_name, [str(member.id), newrep])
+
+        rdb = json.loads(db.grab_config("mr-roles") or "{}")
+
+    etypes: List[str] = []
+
+    if (str(newrep) in rdb) and (r := message.guild.get_role(rdb[str(newrep)])):
+        try:
+            member.add_roles(r)
+        except discord.errors.Forbidden:
+            etypes.append("Could not add new rep role (403)")
+    else:
+        etypes.append("Could not add new rep role (404)")
+
+    if (str(newrep-1) in rdb) and (r := message.guild.get_role(rdb[str(newrep-1)])):
+        try:
+            member.remove_roles(r)
+        except discord.errors.Forbidden:
+            etypes.append("Could not remove old rep role (403)")
+    else:
+        etypes.append("Could not remove old rep role (404)")
+
+    await message.channel.send(f"Updated {member.mention}'s market rep to {newrep} in db" + bool(etypes)*f"\nErrors encountered: {', '.join(etypes)}")
+
 
 
 category_info: Dict[str, str] = {
