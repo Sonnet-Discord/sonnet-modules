@@ -1,7 +1,7 @@
 # BOT COMMANDS
 # Ultrabear 2021
 
-import os, tempfile
+import os, tempfile, discord
 
 
 
@@ -14,16 +14,29 @@ elif BOT_OWNER:
     BOT_OWNER = [int(i) for i in BOT_OWNER]
 
 
+class fakersp:
+    def __init__(self):
+        self.status = "This didint actually fail"
+        self.reason = "Its intentional trust me"
+
+
 async def fatal_lol(message, args, client, **kwargs):
     raise RuntimeError("This command is designed to fatal error")
+
+
+async def fatal_lol2(message, args, client, **kwargs):
+    raise discord.errors.Forbidden(fakersp(), "This command is designed to fatal error")
+
 
 
 async def cont_echo(message, args, client, **kwargs):
     await message.channel.send(f"{message.content}\n{args}")
 
+
 async def bot_update(message, args, client, **kwargs):
     ret = os.system("git pull")
     await message.channel.send(f"returned {ret}")
+
 
 async def get_commit(message, args, client, **kwargs):
     f = tempfile.NamedTemporaryFile()
@@ -48,6 +61,13 @@ category_info = {
 
 
 commands = {
+    'exception2': {
+        'pretty_name': 'exception2',
+        'description': 'Cause an exception',
+        'permission': ("bot-owner", isowner),
+        'cache':'keep',
+        'execute': fatal_lol2
+    },
      'exception': {
         'pretty_name': 'exception',
         'description': 'Cause an exception',
