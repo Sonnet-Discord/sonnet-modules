@@ -1,6 +1,8 @@
 # sonnet-modules
 A repo of sonnet command modules and dlib modules that extend sonnet to more obscure tasks  
 This repo is open to all to submit their own modules or patch others
+# Garantees
+Modules published under sonnet-modules do not garantee backwards compatability or stability, this repository is simply a place for people to post their creations
 # Guidelines
 - Modules will be submitted as /mod/\<username\>/\<modulename\>/\*
 - Modules will include a README.md explaining:
