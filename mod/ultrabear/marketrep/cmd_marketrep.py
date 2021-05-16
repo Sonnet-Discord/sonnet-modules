@@ -138,6 +138,11 @@ async def decrement_user(message: discord.Message, args: List[str], client: disc
 
         grep = db.grab_enum(table_name, str(member.id))
 
+        if grep and grep[1]-1 >= 0:
+            newrep = grep[1] - 1
+        else:
+            newrep = 0 
+            
         try:
             rep_number: int = int(grep[1]-1)
             if rep_number < 0: raise ItsBelowZero
@@ -145,10 +150,7 @@ async def decrement_user(message: discord.Message, args: List[str], client: disc
             await message.channel.send("ERROR: User's market rep cannot be below zero.")
             return 1
 
-        if grep and grep[1]-1 >= 0:
-            newrep = grep[1] - 1
-        else:
-            newrep = 0 
+
 
         db.set_enum(table_name, [str(member.id), newrep])
 
