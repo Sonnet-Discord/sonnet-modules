@@ -1,6 +1,6 @@
 {
 	"configs":["mr-roles"],
 	"tables":["marketrep"],
-	"commands":[],
+	"commands":["mr-addrole", "mr-increp", "mr-decrep"],
 	"events":[]
 }

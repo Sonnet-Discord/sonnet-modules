@@ -11,22 +11,19 @@ importlib.reload(lib_db_obfuscator)
 
 from lib_db_obfuscator import db_hlapi
 
-
 from typing import Dict, List, Any, Optional, Tuple
 
-
-marketrep_table: List[Tuple[str, Any]]  = [("userID", str), ("reputation", int)]
+marketrep_table: List[Tuple[str, Any]] = [("userID", str), ("reputation", int)]
 
 
 # I am going to write a comment here specifically
-# To spite anyone that reads the name of this 
+# To spite anyone that reads the name of this
 # Exception and does not understand its function
 # If you are this person please pursue a career in not CS
 # Because you will bobby tables everything
 # Like the absolute idiot you are
 class ItsBelowZero(Exception):
     pass
-
 
 
 async def grab_member(message: discord.Message, args: List[str]) -> Optional[discord.Member]:
@@ -98,11 +95,10 @@ async def increment_user(message: discord.Message, args: List[str], client: disc
             newrep = grep[1] + 1
         else:
             newrep = 1
-            
+
         rdb = json.loads(db.grab_config("mr-roles") or "{}")
 
         db.set_enum(table_name, [str(member.id), newrep])
-
 
     etypes: List[str] = []
 
@@ -114,7 +110,7 @@ async def increment_user(message: discord.Message, args: List[str], client: disc
     else:
         etypes.append("Could not add new rep role (404)")
 
-    if (str(newrep-1) in rdb) and (r := message.guild.get_role(rdb[str(newrep-1)])):
+    if (str(newrep - 1) in rdb) and (r := message.guild.get_role(rdb[str(newrep - 1)])):
         try:
             await member.remove_roles(r)
         except discord.errors.Forbidden:
@@ -122,7 +118,8 @@ async def increment_user(message: discord.Message, args: List[str], client: disc
     else:
         etypes.append("Could not remove old rep role (404)")
 
-    await message.channel.send(f"Updated {member.mention}'s market rep to {newrep} in db" + bool(etypes)*f"\nErrors encountered: {', '.join(etypes)}")
+    await message.channel.send(f"Updated {member.mention}'s market rep to {newrep} in db" + bool(etypes) * f"\nErrors encountered: {', '.join(etypes)}")
+
 
 async def decrement_user(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
 
@@ -138,19 +135,11 @@ async def decrement_user(message: discord.Message, args: List[str], client: disc
 
         grep = db.grab_enum(table_name, str(member.id))
 
-        if grep and grep[1]-1 >= 0:
+        if grep and grep[1] - 1 >= 0:
             newrep = grep[1] - 1
         else:
-            newrep = 0 
-
-        try:
-            rep_number: int = int(grep[1]-1)
-            if rep_number < 0: raise ItsBelowZero
-        except (ValueError, ItsBelowZero):
-            await message.channel.send("ERROR: User's market rep cannot be below zero.")
+            await message.channel.send("ERROR: Users marketrep cannot be below 0")
             return 1
-
-
 
         db.set_enum(table_name, [str(member.id), newrep])
 
@@ -167,7 +156,7 @@ async def decrement_user(message: discord.Message, args: List[str], client: disc
     else:
         etypes.append("Could not add new rep role (404)")
 
-    if (str(newrep+1) in rdb) and (r := message.guild.get_role(rdb[str(newrep+1)])):
+    if (str(newrep + 1) in rdb) and (r := message.guild.get_role(rdb[str(newrep + 1)])):
         try:
             await member.remove_roles(r)
         except discord.errors.Forbidden:
@@ -175,14 +164,14 @@ async def decrement_user(message: discord.Message, args: List[str], client: disc
     else:
         etypes.append("Could not remove old rep role (404)")
 
-    await message.channel.send(f"Updated {member.mention}'s market rep to {newrep} in db" + bool(etypes)*f"\nErrors encountered: {', '.join(etypes)}")
+    await message.channel.send(f"Updated {member.mention}'s market rep to {newrep} in db" + bool(etypes) * f"\nErrors encountered: {', '.join(etypes)}")
 
 
 category_info: Dict[str, str] = {
     "name": "marketrep",
     "pretty_name": "MarketRep",
     "description": "Market Reputation control commands",
-}
+    }
 
 commands: Dict[str, Dict[str, Any]] = {
     "mr-addrole": {
@@ -191,21 +180,21 @@ commands: Dict[str, Dict[str, Any]] = {
         "permission": "administrator",
         "cache": "keep",
         "execute": add_mr_role,
-    },
+        },
     "mr-increp": {
         "pretty_name": "mr-increp <user>",
         "description": "increment a users market rep",
         "permission": "moderator",
         "cache": "keep",
         "execute": increment_user,
-    },
+        },
     "mr-decrep": {
         "pretty_name": "mr-decrep <user>",
         "description": "decrement a users market rep",
         "permission": "moderator",
         "cache": "keep",
         "execute": decrement_user,
-    },
-}
+        },
+    }
 
 version_info: str = "MR-1.0.0"
