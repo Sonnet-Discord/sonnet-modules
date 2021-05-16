@@ -142,7 +142,7 @@ async def decrement_user(message: discord.Message, args: List[str], client: disc
             newrep = grep[1] - 1
         else:
             newrep = 0 
-            
+
         try:
             rep_number: int = int(grep[1]-1)
             if rep_number < 0: raise ItsBelowZero
@@ -164,8 +164,8 @@ async def decrement_user(message: discord.Message, args: List[str], client: disc
                 await member.add_roles(r)
             except discord.errors.Forbidden:
                 etypes.append("Could not add new rep role (403)")
-            else:
-                etypes.append("Could not add new rep role (404)")
+    else:
+        etypes.append("Could not add new rep role (404)")
 
     if (str(newrep+1) in rdb) and (r := message.guild.get_role(rdb[str(newrep+1)])):
         try:
