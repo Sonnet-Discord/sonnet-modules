@@ -1,0 +1,3 @@
+{
+	"commands":["gc-collect", "gc-stats"]
+}
