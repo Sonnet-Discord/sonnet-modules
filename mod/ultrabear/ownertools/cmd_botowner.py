@@ -91,4 +91,4 @@ commands = {
         },
     }
 
-version_info = "UBC0"
+version_info = "ot-1.0.0"
