@@ -19,14 +19,33 @@ from lib_parsers import parse_skip_message
 from lib_loaders import load_message_config
 from lib_db_obfuscator import db_hlapi
 
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, Set
+import lib_lexdpyk_h as lexdpyk
 
 trust_types: Dict[Union[str, int], Any] = {0: "usertrust_enabled", "text": [["usertrust-trusted-role", ""], ["usertrust-message-count", ""], ["usertrust-enabled", "0"]]}
+
+
+def get_trust_pool(message: discord.Message, kernel_ramfs: lexdpyk.ram_filesystem) -> Set[int]:
+
+    tset: Set[int]
+
+    try:
+        tset = kernel_ramfs.read_f(f"{message.guild.id}/usertrust_pool")
+    except FileNotFoundError:
+        tset = kernel_ramfs.create_f(f"{message.guild.id}/usertrust_pool", f_type=set, f_args=[])
+
+    return tset
 
 
 async def on_usertrust_message(message: discord.Message, **kargs: Any) -> None:
 
     if parse_skip_message(kargs["client"], message):
+        return
+
+    trusted = get_trust_pool(message, kargs["kernel_ramfs"])
+
+    # Give up if user is already trusted
+    if message.author.id in trusted:
         return
 
     utrust_cache = load_message_config(message.guild.id, kargs["ramfs"], datatypes=trust_types)
@@ -35,13 +54,6 @@ async def on_usertrust_message(message: discord.Message, **kargs: Any) -> None:
         return
 
     with db_hlapi(message.guild.id) as db:
-
-        # Give up if they are already trusted
-        db.inject_enum("usertrust_trusted", [
-            ("userID", str),
-            ])
-        if db.grab_enum("usertrust_trusted", str(message.author.id)):
-            return
 
         db.inject_enum("usertrust", [("userID", str), ("count", int)])
 
@@ -57,7 +69,7 @@ async def on_usertrust_message(message: discord.Message, **kargs: Any) -> None:
             if int(c) < count and (drole := message.guild.get_role(int(r))):
                 try:
                     await message.author.add_roles(drole)
-                    db.set_enum("usertrust_trusted", [str(message.author.id)])
+                    trusted.add(message.author.id)
                 except discord.errors.Forbidden:
                     pass
 
@@ -68,4 +80,4 @@ commands = {
     "on-message-0": on_usertrust_message,
     }
 
-version_info = "ut-1.0.0"
+version_info = "ut-1.0.1"
