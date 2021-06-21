@@ -1,4 +1,4 @@
-# Reactionrole dlib for managing logic
+# UserTrust (Nachog has been trolled)
 # Ultrabear 2021
 
 import importlib
@@ -25,14 +25,14 @@ import lib_lexdpyk_h as lexdpyk
 trust_types: Dict[Union[str, int], Any] = {0: "usertrust_enabled", "text": [["usertrust-trusted-role", ""], ["usertrust-message-count", ""], ["usertrust-enabled", "0"]]}
 
 
-def get_trust_pool(message: discord.Message, kernel_ramfs: lexdpyk.ram_filesystem) -> Set[int]:
+def get_trust_pool(guild: discord.Guild, kernel_ramfs: lexdpyk.ram_filesystem) -> Set[int]:
 
     tset: Set[int]
 
     try:
-        tset = kernel_ramfs.read_f(f"{message.guild.id}/usertrust_pool")
+        tset = kernel_ramfs.read_f(f"{guild.id}/usertrust_pool")
     except FileNotFoundError:
-        tset = kernel_ramfs.create_f(f"{message.guild.id}/usertrust_pool", f_type=set, f_args=[])
+        tset = kernel_ramfs.create_f(f"{guild.id}/usertrust_pool", f_type=set, f_args=[])
 
     return tset
 
@@ -42,7 +42,7 @@ async def on_usertrust_message(message: discord.Message, **kargs: Any) -> None:
     if parse_skip_message(kargs["client"], message):
         return
 
-    trusted = get_trust_pool(message, kargs["kernel_ramfs"])
+    trusted = get_trust_pool(message.guild, kargs["kernel_ramfs"])
 
     # Give up if user is already trusted
     if message.author.id in trusted:
@@ -74,10 +74,25 @@ async def on_usertrust_message(message: discord.Message, **kargs: Any) -> None:
                     pass
 
 
+async def on_usertrust_member_join(member: discord.Member, **kargs: Any) -> None:
+
+    if member.id in get_trust_pool(member.guild, kargs["kernel_ramfs"]):
+
+        utrust_cache = load_message_config(member.guild.id, kargs["ramfs"], datatypes=trust_types)
+
+        if r := utrust_cache["usertrust-trusted-role"]:
+            if drole := member.guild.get_role(int(r)):
+                try:
+                    await member.add_roles(drole)
+                except discord.errors.Forbidden:
+                    pass
+
+
 category_info = {'name': 'UserTrust'}
 
-commands = {
+commands: Dict[str, Any] = {
     "on-message-0": on_usertrust_message,
+    "on-member-join-0": on_usertrust_member_join,
     }
 
-version_info = "ut-1.0.1"
+version_info = "ut-1.0.2"

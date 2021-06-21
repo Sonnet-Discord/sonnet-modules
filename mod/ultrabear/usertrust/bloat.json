@@ -1,6 +1,6 @@
 {
-	"commands":["usertrust-count", "usertrust-enabled", "usertrust-role"],
-	"events": ["on-message-0"],
+	"commands":["usertrust-count", "usertrust-enabled", "usertrust-role", "usertrust-checkuser"],
+	"events": ["on-message-0", "on-member-join-0"],
 	"configs":["usertrust-enabled", "usertrust-message-count", "usertrust-trusted-role"],
 	"tables":["usertrust", "usertrust_trusted"],
 	"caches": ["usertrust_enabled"]

@@ -12,10 +12,23 @@ import lib_parsers
 
 importlib.reload(lib_parsers)
 
-from lib_parsers import parse_role, parse_boolean
+from lib_parsers import parse_role, parse_boolean, parse_user_member
 from lib_db_obfuscator import db_hlapi
 
-from typing import Any, List
+from typing import Any, List, Set
+import lib_lexdpyk_h as lexdpyk
+
+
+def get_trust_pool(guild: discord.Guild, kernel_ramfs: lexdpyk.ram_filesystem) -> Set[int]:
+
+    tset: Set[int]
+
+    try:
+        tset = kernel_ramfs.read_f(f"{guild.id}/usertrust_pool")
+    except FileNotFoundError:
+        tset = kernel_ramfs.create_f(f"{guild.id}/usertrust_pool", f_type=set, f_args=[])
+
+    return tset
 
 
 async def usertrust_role(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
@@ -54,6 +67,32 @@ async def set_usertrust_use(message: discord.Message, args: List[str], client: d
         await message.channel.send(f"Usertrust enabled is {bool(gate)}")
 
 
+async def get_users_trust(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
+
+    try:
+        user, _ = await parse_user_member(message, args, client, default_self=True)
+    except lib_parsers.errors.user_parse_error:
+        return 1
+
+    t_count: int
+
+    with db_hlapi(message.guild.id) as db:
+        db.inject_enum("usertrust", [("userID", str), ("count", int)])
+
+        trust = db.grab_enum("usertrust", str(user.id))
+
+        if trust and isinstance(trust[1], int):
+            t_count = trust[1]
+        else:
+            t_count = 0
+
+    trusted = get_trust_pool(message.guild, kwargs["kernel_ramfs"])
+
+    fmt = f"```\nUser: {user}\nMcount: {t_count}\nHas Trusted Role: {user.id in trusted}\n```"
+
+    await message.channel.send(fmt)
+
+
 category_info = {'name': 'usertrust', 'pretty_name': 'User Trust', 'description': 'Commands to configure the user trust system'}
 
 commands = {
@@ -80,6 +119,13 @@ commands = {
             'cache': 'regenerate',
             'execute': set_usertrust_use
             },
+    'usertrust-checkuser': {
+        'pretty_name': 'usertrust-checkuser <user>',
+        'description': 'Checks a users trust status',
+        'permission': 'moderator',
+        'cache': 'keep',
+        'execute': get_users_trust
+        },
     }
 
-version_info: str = "ut-1.0.0"
+version_info: str = "ut-1.0.2"
