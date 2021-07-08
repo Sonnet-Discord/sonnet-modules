@@ -68,4 +68,4 @@ commands = {
         },
     }
 
-version_info: str = "0.0.1-DVT"
+version_info: str = "1.0.0"
