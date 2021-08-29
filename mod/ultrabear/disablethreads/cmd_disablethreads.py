@@ -6,7 +6,6 @@ import discord
 from typing import Any, List
 
 
-# IMPORTANT Any permissions added after thread perms will also be disabled by this
 async def disable_role_perms(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
     if not message.guild:
         return 1
@@ -26,12 +25,15 @@ async def disable_role_perms(message: discord.Message, args: List[str], client: 
 
         perms = r.permissions
 
-        perms.value = fullmask & perms.value
+        # Only make async request if it makes a difference
+        if perms.value != fullmask & perms.value:
 
-        try:
-            await r.edit(permissions=perms)
-        except discord.errors.Forbidden:
-            failure.append(r)
+            perms.value = fullmask & perms.value
+
+            try:
+                await r.edit(permissions=perms)
+            except discord.errors.Forbidden:
+                failure.append(r)
 
     if failure:
         await message.channel.send(f"Missed roles: {', '.join([i.mention for i in failure])}", allowed_mentions=discord.AllowedMentions.none())
@@ -52,4 +54,4 @@ commands = {
             },
     }
 
-version_info: str = "dt-1.0.0"
+version_info: str = "dt-1.0.1"
