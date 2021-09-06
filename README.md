@@ -14,6 +14,10 @@ Modules published under sonnet-modules do not guarantee backwards compatibility 
   - Sonnet config names used (`"configs":[]`)
   - Event names used (`"events":[]`)
   - Config caches used (`"caches":[]`)
+  - Filenames used (`"files":[]`)
+- As of sonnet V2.0.0, modules may now specify files used and make their own lib_ files
+  - This change was made to allow code deduplication between a dlib and cmd file under the same module
+  - Files named cmd_\*.py will be under cmds, dlib_\*.py under dlibs, and lib_\*.py under libs
 ## Example:
 ```bash
 > ls GITROOT/mod/ultrabear/marketrep/
@@ -33,6 +37,7 @@ GITROOT/mod/ultrabear/marketrep/bloat.json
 	"tables":["marketrep"],
 	"configs":["mr-roles"],
 	"caches":[],
+	"files":["cmd_marketrep.py"],
 }
 ```
 Note: as no `events` are used by this module it omits writing the json key to an empty list, this holds true for all keys
