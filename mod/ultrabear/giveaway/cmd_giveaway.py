@@ -14,7 +14,7 @@ importlib.reload(lib_constants)
 
 import lib_constants as constants
 
-from typing import List, Any, Set
+from typing import List, Any
 
 
 async def giveaway_role(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
@@ -54,10 +54,7 @@ async def giveaway_role(message: discord.Message, args: List[str], client: disco
         await message.channel.send("ERROR: More winners specified than members that have the role")
         return 1
 
-    winners: Set[discord.Member] = set()
-
-    for _ in range(winner_count):
-        winners.add(members.pop(random.randint(0, len(members) - 1)))
+    winners: List[discord.Member] = random.choices(members, k=winner_count)
 
     tend = time.monotonic()
 
@@ -76,4 +73,4 @@ commands = {
         }
     }
 
-version_info = "1.0.0"
+version_info = "1.0.1"
