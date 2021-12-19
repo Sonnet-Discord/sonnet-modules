@@ -108,7 +108,7 @@ def validate_modulename(modname: str) -> Tuple[str, str]:
         raise UserError(f"ERROR: Module name: {modname}, invalid schema")
 
     if not os.path.isdir(f"{SONNET_MOD_DIR}mod/{split[0]}/{split[1]}"):
-        raise UserError("ERROR: Module {modname} is not a path")
+        raise UserError(f"ERROR: Module {modname} is not a path")
 
     # TODO(ultrabear) add validation for bloat.json stuff
 
