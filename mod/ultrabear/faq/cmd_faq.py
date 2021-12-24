@@ -132,7 +132,7 @@ async def faq_list(message: discord.Message, args: List[str], client: discord.Cl
         newline = "\n"
         await message.channel.send(f"```\n{newline.join(faq_name_list)}```"[:2000]) # TODO(ultrabear) this is lazy
     else:
-        await message.channel.send("This guild has no FAQ entries!")
+        await message.channel.send("This guild has no FAQ entries")
 
 
 # Override category help to provide faq listings
@@ -140,7 +140,9 @@ async def __help_override__(message: discord.Message, args: List[str], client: d
     if not message.guild:
         return None
 
-    clist: List[Tuple[str, str]] = [(str(v["pretty_name"]), str(v["description"])) for _, v in commands.items()]
+    PREFIX = kwargs["conf_cache"]["prefix"]
+
+    clist: List[Tuple[str, str]] = [f"{PREFIX}{v['pretty_name']}", str(v["description"])) for _, v in commands.items()]
 
     clist.sort(key=lambda s: s[0])
 
@@ -152,7 +154,7 @@ async def __help_override__(message: discord.Message, args: List[str], client: d
             # pylint: disable=E0633
             _, meta, _, _ = cast(Tuple[str, str, str, str], db.grab_enum(faq_name, i))
 
-            clist.append((f"{kwargs['conf_cache']['prefix']}faq {i}", str(meta if meta else i)), )
+            clist.append((f"{PREFIX}faq {i}", str(meta if meta else i)), )
 
     # TODO(ultrabear) Custom description per guild
     return category_info["description"], clist
@@ -188,4 +190,4 @@ commands = {
         },
     }
 
-version_info = "1.0.0-1"
+version_info = "1.0.0-2"
