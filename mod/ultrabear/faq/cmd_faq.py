@@ -83,6 +83,13 @@ async def faq_set(message: discord.Message, args: List[str], client: discord.Cli
     name = args[0]
     body = stripargs(message.content, 2)
 
+    if len(body) > 2000:
+        await message.channel.send("ERROR: FAQ body too large")
+        return 1
+    elif len(name) >= 128:
+        await message.channel.send("ERROR: FAQ name too large")
+        return 1
+
     with db_hlapi(message.guild.id) as db:
         db.inject_enum(faq_name, faq_enum)
 
@@ -123,7 +130,7 @@ async def faq_list(message: discord.Message, args: List[str], client: discord.Cl
     # TODO(ultrabear) Improve rendering
     if faq_name_list:
         newline = "\n"
-        await message.channel.send(f"```\n{newline.join(faq_name_list)}```")
+        await message.channel.send(f"```\n{newline.join(faq_name_list)}```"[:2000]) # TODO(ultrabear) this is lazy
     else:
         await message.channel.send("This guild has no FAQ entries!")
 
@@ -181,4 +188,4 @@ commands = {
         },
     }
 
-version_info = "1.0.0"
+version_info = "1.0.0-1"
