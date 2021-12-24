@@ -1,0 +1,5 @@
+{
+  "commands":["faq", "faq-list", "faq-delete", "faq-set"],
+  "files":["cmd_faq.py"],
+  "tables":["faq_data"]
+}
