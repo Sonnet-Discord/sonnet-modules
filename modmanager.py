@@ -119,16 +119,14 @@ def main(args: List[str]) -> int:
 
     parser = argparse.ArgumentParser()
 
-    meta_parser = parser.add_subparsers()
-
-    meta_parser.add_parser("install").add_argument("install", help="Install the module to the sonnet install directory")
-    meta_parser.add_parser("uninstall").add_argument("uninstall", help="Uninstall a module from the sonnet install directory")
+    parser.add_argument("-S", help="Install the module to the sonnet install directory", dest="install")
+    parser.add_argument("-R", help="Uninstall a module from the sonnet install directory", dest="uninstall")
 
     parsed = parser.parse_args()
 
-    if "install" in parsed:
+    if parsed.install is not None:
         install_module(*validate_modulename(parsed.install))
-    elif "uninstall" in parsed:
+    elif parsed.uninstall is not None:
         uninstall_module(*validate_modulename(parsed.uninstall))
     else:
         raise UserError("Neither install nor uninstall specified, try --help")
