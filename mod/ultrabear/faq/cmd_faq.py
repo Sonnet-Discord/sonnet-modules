@@ -11,9 +11,14 @@ importlib.reload(lib_db_obfuscator)
 import lib_parsers
 
 importlib.reload(lib_parsers)
+import lib_constants
+
+importlib.reload(lib_constants)
 
 from lib_db_obfuscator import db_hlapi
 from lib_parsers import parse_permissions
+
+import lib_constants as constants
 
 from typing import Any, Union, List, Tuple, Type, Final, Optional, cast  # pytype: disable=import-error
 
@@ -50,17 +55,15 @@ async def faq_get(message: discord.Message, args: List[str], client: discord.Cli
     with db_hlapi(message.guild.id) as db:
         db.inject_enum(faq_name, faq_enum)
 
-        faq_name_list = cast(List[str], db.list_enum(faq_name))
+        maybedata = db.grab_enum(faq_name, args[0])
 
-        if args[0] not in faq_name_list:
+        if maybedata is None:
             await message.channel.send("ERROR: FAQ requested does not exist")
             return 1
 
-        # We can cast because list_enum had the entry
-        # pylint: disable=E0633
-        _, _, content, perm = cast(Tuple[str, str, str, str], db.grab_enum(faq_name, args[0]))
+        _, _, content, perm = maybedata  # pylint: disable=E0633
 
-        if await parse_permissions(message, kwargs["conf_cache"], perm, verbose=False):
+        if await parse_permissions(message, kwargs["conf_cache"], str(perm), verbose=False):
             await message.channel.send(content)
             return 0
         else:
@@ -83,10 +86,10 @@ async def faq_set(message: discord.Message, args: List[str], client: discord.Cli
     name = args[0]
     body = stripargs(message.content, 2)
 
-    if len(body) > 2000:
+    if len(body) > constants.message.content:
         await message.channel.send("ERROR: FAQ body too large")
         return 1
-    elif len(name) >= 128:
+    elif len(name) >= 32:
         await message.channel.send("ERROR: FAQ name too large")
         return 1
 
@@ -130,9 +133,109 @@ async def faq_list(message: discord.Message, args: List[str], client: discord.Cl
     # TODO(ultrabear) Improve rendering
     if faq_name_list:
         newline = "\n"
-        await message.channel.send(f"```\n{newline.join(faq_name_list)}```"[:2000]) # TODO(ultrabear) this is lazy
+        await message.channel.send(f"```\n{newline.join(faq_name_list)}```"[:2000])  # TODO(ultrabear) this is lazy
     else:
         await message.channel.send("This guild has no FAQ entries")
+
+
+async def faq_set_description(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
+    if not message.guild:
+        return 1
+
+    if not args:
+        await message.channel.send("ERROR: Missing FAQ name")
+        return 1
+
+    if len(args) < 2:
+        await message.channel.send("ERROR: Missing FAQ desc")
+        return 1
+
+    name = args[0]
+    desc = stripargs(message.content, 2)
+
+    if len(desc) > 256:
+        await message.channel.send("ERROR: FAQ description too large")
+        return 1
+
+    with db_hlapi(message.guild.id) as db:
+        db.inject_enum(faq_name, faq_enum)
+
+        maybefaq = db.grab_enum(faq_name, name)
+
+        if maybefaq is None:
+            await message.channel.send("ERROR: FAQ entry does not exist")
+            return 1
+
+        _, _, body, perm = maybefaq  # pylint: disable=E0633
+
+        db.set_enum(faq_name, [name, desc, body, perm])
+
+    if kwargs["verbose"]: await message.channel.send(f"Updated description for FAQ entry {name}")
+
+
+async def faq_set_permission(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
+    if not message.guild:
+        return 1
+
+    if not args:
+        await message.channel.send("ERROR: Missing FAQ name")
+        return 1
+
+    if len(args) < 2:
+        await message.channel.send("ERROR: Missing FAQ perm")
+        return 1
+
+    name = args[0]
+    perm = args[1]
+
+    if perm not in {"everyone", "moderator", "administrator", "owner"}:
+        await message.channel.send("ERROR: Perm must be one of [everyone moderator administrator owner]")
+        return 1
+
+    with db_hlapi(message.guild.id) as db:
+        db.inject_enum(faq_name, faq_enum)
+
+        maybefaq = db.grab_enum(faq_name, name)
+
+        if maybefaq is None:
+            await message.channel.send("ERROR: FAQ entry does not exist")
+            return 1
+
+        _, desc, body, _ = maybefaq  # pylint: disable=E0633
+
+        db.set_enum(faq_name, [name, desc, body, perm])
+
+    if kwargs["verbose"]: await message.channel.send(f"Updated FAQ permission for entry {name} to `{perm}`")
+
+
+async def faq_guild_description(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
+    if not message.guild:
+        return 1
+
+    if not args:
+        await message.channel.send("ERROR: Missing description")
+        return 1
+
+    desc = stripargs(message.content, 1)
+
+    if len(desc) > 512:
+        await message.channel.send("ERROR: Description too large")
+        return 1
+
+    with db_hlapi(message.guild.id) as db:
+        db.add_config("faq_description", desc)
+
+    if kwargs["verbose"]: await message.channel.send("Updated description for guild help")
+
+
+async def clear_faq_description(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
+    if not message.guild:
+        return 1
+
+    with db_hlapi(message.guild.id) as db:
+        db.delete_config("faq_description")
+
+    if kwargs["verbose"]: await message.channel.send("Deleted FAQ help description")
 
 
 # Override category help to provide faq listings
@@ -142,7 +245,7 @@ async def __help_override__(message: discord.Message, args: List[str], client: d
 
     PREFIX = kwargs["conf_cache"]["prefix"]
 
-    clist: List[Tuple[str, str]] = [f"{PREFIX}{v['pretty_name']}", str(v["description"])) for _, v in commands.items()]
+    clist: List[Tuple[str, str]] = [(f"{PREFIX}{v['pretty_name']}", str(v["description"])) for _, v in commands.items()]
 
     clist.sort(key=lambda s: s[0])
 
@@ -156,12 +259,11 @@ async def __help_override__(message: discord.Message, args: List[str], client: d
 
             clist.append((f"{PREFIX}faq {i}", str(meta if meta else i)), )
 
+        faq_description = db.grab_config("faq_description") or category_info["description"]
+
     # TODO(ultrabear) Custom description per guild
-    return category_info["description"], clist
+    return faq_description, clist
 
-
-# TODO(ultrabear) Add description setting per faq entry
-# TODO(ultrabear) Add permission setting per faq entry
 
 category_info = {"name": "faq", "pretty_name": "FAQ", "description": "FAQ Module for making guild level custom faq posts"}
 
@@ -177,6 +279,34 @@ commands = {
         "permission": "administrator",
         "execute": faq_set,
         },
+    "faq-set-description":
+        {
+            "pretty_name": "faq-set-description <name> <description>",
+            "description": "Sets an FAQ entries description",
+            "permission": "administrator",
+            "execute": faq_set_description,
+            },
+    "faq-set-permission":
+        {
+            "pretty_name": "faq-set-permission <name> <permission>",
+            "description": "Sets an FAQ entries permission level",
+            "permission": "administrator",
+            "execute": faq_set_permission,
+            },
+    "faq-delete-guild-description":
+        {
+            "pretty_name": "faq-delete-guild-description",
+            "description": "deletes the helptext description",
+            "permission": "administrator",
+            "execute": clear_faq_description,
+            },
+    "faq-set-guild-description":
+        {
+            "pretty_name": "faq-set-guild-description <description>",
+            "description": "Sets the helptext description",
+            "permission": "administrator",
+            "execute": faq_guild_description,
+            },
     "faq-delete": {
         "pretty_name": "faq-delete <name>",
         "description": "Deletes the FAQ entry with the given name",
@@ -190,4 +320,4 @@ commands = {
         },
     }
 
-version_info = "1.0.0-2"
+version_info = "1.0.1"

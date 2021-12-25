@@ -1,5 +1,6 @@
 {
-  "commands":["faq", "faq-list", "faq-delete", "faq-set"],
+  "commands":["faq", "faq-list", "faq-delete", "faq-set", "faq-set-description", "faq-set-permission", "faq-delete-guild-description", "faq-set-guild-description"],
   "files":["cmd_faq.py"],
-  "tables":["faq_data"]
+  "tables":["faq_data"],
+  "configs": ["faq_description"]
 }
