@@ -15,7 +15,8 @@ Modules published under sonnet-modules do not guarantee backwards compatibility 
   - Event names used (`"events":[]`)
   - Config caches used (`"caches":[]`)
   - Filenames used (`"files":[]`)
-- As of sonnet V2.0.0, modules may now specify files used and make their own lib_ files
+  - Version (`"version":"0.0.0"`)
+- Modules may specify lib_ files used
   - This change was made to allow code deduplication between a dlib and cmd file under the same module
   - Files named cmd_\*.py will be under cmds, dlib_\*.py under dlibs, and lib_\*.py under libs
 ## Example:
