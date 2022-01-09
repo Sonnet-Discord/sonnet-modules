@@ -3,5 +3,6 @@
 	"events": ["on-message-0", "on-member-join-0"],
 	"configs":["usertrust-enabled", "usertrust-message-count", "usertrust-trusted-role"],
 	"tables":["usertrust", "usertrust_trusted"],
-	"caches": ["usertrust_enabled"]
+	"caches": ["usertrust_enabled"],
+  "version": "1.0.2"
 }
