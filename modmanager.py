@@ -8,6 +8,8 @@ import argparse
 import shutil
 import json
 
+from dataclasses import dataclass
+
 from typing import Optional, List, Tuple, Generator, Type, Dict, Any
 
 
@@ -66,12 +68,16 @@ class BJsonConfig:
         self.files: List[str] = data.get("files", [])
         self.version: str = data.get("version", "0.0.0")
 
+@dataclass
 class ModuleEntry:
     __slots__ = "author", "name", "version"
-    def __init__(self, author: str, name: str, version: str) -> None:
-        self.author = author
-        self.name = name
-        self.version = version
+    author: str
+    name: str
+    version: str
+
+    def __hash__(self) -> int:
+        return hash((self.author, self.name))
+
 
 def bloat_json_to_obj(filename: str) -> BJsonConfig:
     with open(filename, "rb") as fp:
@@ -123,7 +129,7 @@ class ModuleDB:
 
     def save(self) -> None:
         self._fp.seek(0)
-        for i in self._modules:
+        for i in set(self._modules):
             self._fp.write(f"{i.author}/{i.name}/{i.version}\n")
         self._fp.truncate()
 
