@@ -1,52 +1,67 @@
 # BOT COMMANDS
 # Ultrabear 2021
 
-import os, tempfile, discord
+import importlib
+
+import asyncio, discord
+
+import lib_sonnetcommands
+
+importlib.reload(lib_sonnetcommands)
+
+from lib_sonnetcommands import CommandCtx
+
+from typing import List, Any, Container
 
 # Import BOT OWNER
-from LeXdPyK_conf import BOT_OWNER
+from LeXdPyK_conf import BOT_OWNER as KNOWN_OWNER
 
-if (t := type(BOT_OWNER)) == str or t == int:
-    BOT_OWNER = [int(BOT_OWNER)] if BOT_OWNER else []
-elif BOT_OWNER:
-    BOT_OWNER = [int(i) for i in BOT_OWNER]
+UNKNOWN_OWNER: Any = KNOWN_OWNER
+BOT_OWNER: Container[int]
+
+if isinstance(UNKNOWN_OWNER, (int, str)):
+    BOT_OWNER = [int(UNKNOWN_OWNER)] if UNKNOWN_OWNER else []
+elif isinstance(UNKNOWN_OWNER, (list, tuple)):
+    BOT_OWNER = list(map(int, UNKNOWN_OWNER))
+else:
+    BOT_OWNER = []
+
+BOT_OWNER = set(BOT_OWNER)
 
 
 class fakersp:
-    def __init__(self):
+    def __init__(self) -> None:
         self.status = "This didint actually fail"
         self.reason = "Its intentional trust me"
 
 
-async def fatal_lol(message, args, client, **kwargs):
+async def fatal_lol(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> None:
     raise RuntimeError("This command is designed to fatal error")
 
 
-async def fatal_lol2(message, args, client, **kwargs):
-    raise discord.errors.Forbidden(fakersp(), "This command is designed to fatal error")
+async def fatal_lol2(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> None:
+    raise discord.errors.Forbidden(fakersp(), "This command is designed to fatal error")  # type: ignore[arg-type]
 
 
-async def cont_echo(message, args, client, **kwargs):
+async def cont_echo(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> None:
     await message.channel.send(f"{message.content}\n{args}")
 
 
-async def bot_update(message, args, client, **kwargs):
-    ret = os.system("git pull")
-    await message.channel.send(f"returned {ret}")
+async def bot_update(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> None:
+    proc = await asyncio.create_subprocess_exec("git", "pull")
+    await proc.wait()
+    await message.channel.send(f"returned {proc.returncode}")
 
 
-async def get_commit(message, args, client, **kwargs):
-    f = tempfile.NamedTemporaryFile()
-    os.system(f"git log -n 1 > {f.name}")
-    f.seek(0)
+async def get_commit(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> None:
 
-    dat = f.read().decode("utf8")
-    f.close()
+    proc = await asyncio.create_subprocess_exec("git", "log", "-n", "1", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    stdout, stderr = await proc.communicate()
 
-    await message.channel.send(f"Most Recent Commit:```\n{dat}```")
+    await message.channel.send(f"Most Recent Commit:```\n{stdout.decode('utf8')}{stderr.decode('utf8')}```")
 
 
-def isowner(m):
+def isowner(m: discord.Message) -> bool:
     return m.author.id in BOT_OWNER
 
 
@@ -91,4 +106,4 @@ commands = {
         },
     }
 
-version_info = "ot-1.0.0"
+version_info = "ot-1.0.1"
