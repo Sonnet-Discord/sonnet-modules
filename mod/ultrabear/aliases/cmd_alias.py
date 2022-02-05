@@ -176,6 +176,9 @@ async def call_alias(message: discord.Message, args: List[str], client: discord.
     if not message.guild:
         return 1
 
+    if not ctx.verbose:
+        raise lib_sonnetcommands.CommandError("ERROR: Cannot call alias as a subcommand")
+
     spargs = shlex.split(" ".join(args[1:]))
 
     if len(spargs) > simlist:
@@ -288,7 +291,7 @@ commands: Final = {
         'alias': 'alias'
         },
     'alias': {
-        'pretty_name': 'a <name> [args]',
+        'pretty_name': 'alias <name> [args]',
         'description': 'Process an alias and run it',
         'execute': call_alias,
         },
@@ -299,4 +302,4 @@ commands: Final = {
         }
     }
 
-version_info: Final = "al-1.0.0"
+version_info: Final = "al-1.0.1"
