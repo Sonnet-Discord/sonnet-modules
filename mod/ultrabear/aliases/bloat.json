@@ -1,0 +1,6 @@
+{
+  "commands":["a", "alias", "new-alias", "inspect-alias"],
+  "tables": ["aliases"],
+  "files": ["cmd_alias.py"],
+  "version": "1.0.0"
+}
