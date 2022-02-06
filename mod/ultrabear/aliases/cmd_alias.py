@@ -6,6 +6,8 @@ from dataclasses import dataclass
 import copy as pycopy
 import discord
 import shlex
+import io
+import math
 
 import lib_sonnetcommands
 
@@ -19,14 +21,18 @@ importlib.reload(lib_parsers)
 import lib_lexdpyk_h
 
 importlib.reload(lib_lexdpyk_h)
+import lib_tparse
+
+importlib.reload(lib_tparse)
 
 from lib_db_obfuscator import db_hlapi
 from lib_sonnetcommands import CommandCtx, SonnetCommand
 from lib_parsers import parse_permissions
+from lib_tparse import Parser
 
 import lib_lexdpyk_h as lexdpyk
 
-from typing import Collection, List, Tuple, Union, Type, Final, Any
+from typing import Collection, List, Tuple, Union, Type, Final, Any, TypeVar, Callable
 
 # simlist is a simulated list with a max size of 500 items, its used to assert arg lookups
 simlist = 500
@@ -100,7 +106,7 @@ def assert_arglookup(val: str) -> Collection[int]:
 
     else:
         idx: Final = positive_idx(int(typ), simlist)
-        return set([idx])
+        return {idx}
 
 
 def pushassert(lis: List[Collection[int]], new: Collection[int]) -> None:
@@ -142,7 +148,7 @@ async def new_alias(message: discord.Message, args: List[str], client: discord.C
             with db.inject_enum_context(*AliasDBT) as alias_db:
                 alias_db.set([alias_name, " ".join(alias_args)])
 
-        await message.channel.send(f"New alias with name {alias_name} has been created")
+        if ctx.verbose: await message.channel.send(f"New alias with name {alias_name} has been created")
         return 0
 
     else:
@@ -255,7 +261,7 @@ async def inspect_alias(message: discord.Message, args: List[str], client: disco
     if args:
         with db_hlapi(message.guild.id) as db:
             with db.inject_enum_context(*AliasDBT) as alias_db:
-                cont = alias_db.grab(args[0])
+                cont: Final = alias_db.grab(args[0])
 
                 if cont is None:
                     raise lib_sonnetcommands.CommandError("ERROR: Alias does not exist")
@@ -267,9 +273,83 @@ async def inspect_alias(message: discord.Message, args: List[str], client: disco
         raise lib_sonnetcommands.CommandError("ERROR: No alias passed")
 
 
+T = TypeVar("T")
+
+
+def notneg(v: int) -> int:
+    if v < 0:
+        raise ValueError("Value is below zero")
+    return v
+
+
+# low effort pager does what it says on the tin, prelude to high effort pager
+def low_effort_pager_noexcept(v: List[T], fmt: Callable[[T], str], args: List[str], lim: int) -> Tuple[str, int, int]:
+
+    p: Final = Parser("LEP")
+    pageP: Final = p.add_arg(["-p", "--page"], lambda s: notneg(int(s) - 1))
+    per_pageP: Final = p.add_arg(["-i", "--items-perpage"], int)
+
+    try:
+        p.parse(args, stderr=io.StringIO(), exit_on_fail=False, lazy=True)
+    except lib_tparse.ParseFailureError:
+        raise lib_sonnetcommands.CommandError("ERROR: Failed to parse paging/items per page")
+
+    page: Final = pageP.get(0)
+    per_page: Final = per_pageP.get(10)
+
+    if not (1 <= per_page <= 20):
+        raise lib_sonnetcommands.CommandError("ERROR: Per page outside range 1-20")
+
+    plen = math.ceil(len(v) / per_page)
+
+    if not (0 <= page < plen):
+        raise lib_sonnetcommands.CommandError("ERROR: Page requested is out of range")
+
+    max_size = lim // per_page
+
+    return '\n'.join(fmt(i)[:max_size] for i in v[page * per_page:page * per_page + per_page]), page, plen
+
+
+async def list_alias(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> int:
+    if not message.guild:
+        return 1
+
+    with db_hlapi(message.guild.id) as db:
+        with db.inject_enum_context(*AliasDBT) as alias_db:
+            names: Final = alias_db.list()
+            lis = list(filter(None, (alias_db.grab(i) for i in names)))
+
+    if not lis:
+        await message.channel.send("No aliases in database")
+        return 0
+
+    lis.sort(key=lambda i: i[0])
+
+    pagedata, page, totalpages = low_effort_pager_noexcept(lis, lambda s: f"{s[0]} : {s[1]}", args, 1900)
+
+    await message.channel.send(f"Aliases page {page+1} / {totalpages} ({len(lis)} total)```{pagedata}```")
+    return 0
+
+
+async def rm_alias(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> int:
+    if not message.guild:
+        return 1
+
+    if not args:
+        raise lib_sonnetcommands.CommandError("ERROR: No alias name passed")
+
+    with db_hlapi(message.guild.id) as db:
+        with db.inject_enum_context(*AliasDBT) as alias_db:
+            if alias_db.grab(args[0]) is not None:
+                alias_db.delete(args[0])
+            else:
+                raise lib_sonnetcommands.CommandError("ERROR: Alias does not exist")
+
+    if ctx.verbose: await message.channel.send(f"Deleted alias with name {args[0]}")
+    return 0
+
+
 # TODO(ultrabear): add help override?
-# TODO(ultrabear): add list-alias
-# TODO(ultrabear): add rm-alias
 
 category_info: Final = {'name': "alias", "pretty_name": "Aliases", "description": "A userland command alias creation library"}
 
@@ -295,6 +375,17 @@ commands: Final = {
         'description': 'Process an alias and run it',
         'execute': call_alias,
         },
+    'list-aliases': {
+        'pretty_name': 'list-aliases [-p PAGE] [-i PER_PAGE]',
+        'description': 'List aliases',
+        'execute': list_alias,
+        },
+    'rm-alias': {
+        'pretty_name': 'rm-alias <name>',
+        'description': 'Removes an alias with the given name',
+        'permission': 'administrator',
+        'execute': rm_alias,
+        },
     'inspect-alias': {
         'pretty_name': 'inspect-alias <alias>',
         'description': 'Returns an aliases content',
@@ -302,4 +393,4 @@ commands: Final = {
         }
     }
 
-version_info: Final = "al-1.0.1"
+version_info: Final = "al-1.0.2"
