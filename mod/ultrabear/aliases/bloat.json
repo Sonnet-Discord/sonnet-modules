@@ -2,5 +2,5 @@
   "commands":["a", "alias", "new-alias", "inspect-alias", "rm-alias", "list-aliases"],
   "tables": ["aliases"],
   "files": ["cmd_alias.py"],
-  "version": "1.0.2"
+  "version": "1.0.3"
 }

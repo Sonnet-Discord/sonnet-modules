@@ -92,7 +92,7 @@ def parse_arglookupidx(val: str, listlen: int) -> Union[Slice, Index]:
 
 
 def positive_idx(idx: int, length: int) -> int:
-    return length - idx if idx < 0 else idx
+    return length + idx if idx < 0 else idx
 
 
 def assert_arglookup(val: str) -> Collection[int]:
@@ -393,4 +393,4 @@ commands: Final = {
         }
     }
 
-version_info: Final = "al-1.0.2"
+version_info: Final = "al-1.0.3"
