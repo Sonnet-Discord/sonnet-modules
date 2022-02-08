@@ -184,8 +184,11 @@ async def call_alias(message: discord.Message, args: List[str], client: discord.
 
     if not ctx.verbose:
         raise lib_sonnetcommands.CommandError("ERROR: Cannot call alias as a subcommand")
-
-    spargs = shlex.split(" ".join(args[1:]))
+    
+    try:
+        spargs = shlex.split(" ".join(args[1:]))
+    except ValueError:
+        raise lib_sonnetcommands.CommandError("ERROR: Shlex failed to parse arguments, unclosed parenthesis/backslashes")
 
     if len(spargs) > simlist:
         raise lib_sonnetcommands.CommandError(f"ERROR: More than {simlist} args passed (hard limit)")
@@ -393,4 +396,4 @@ commands: Final = {
         }
     }
 
-version_info: Final = "al-1.0.3"
+version_info: Final = "al-1.0.4"
