@@ -1,0 +1,5 @@
+{
+  "files": ["cmd_serverside.py"],
+  "commands": ["serverside-commands"],
+  "version": "1.0.0"
+}
