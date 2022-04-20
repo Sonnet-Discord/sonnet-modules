@@ -11,11 +11,15 @@ importlib.reload(lib_db_obfuscator)
 import lib_parsers
 
 importlib.reload(lib_parsers)
+import lib_sonnetcommands
 
-from lib_parsers import parse_role, parse_boolean, parse_user_member
+importlib.reload(lib_sonnetcommands)
+
+from lib_parsers import parse_role, parse_boolean, parse_user_member_noexcept
 from lib_db_obfuscator import db_hlapi
+from lib_sonnetcommands import CommandCtx
 
-from typing import Any, List, Set
+from typing import Final, List, Set
 import lib_lexdpyk_h as lexdpyk
 
 
@@ -31,48 +35,63 @@ def get_trust_pool(guild: discord.Guild, kernel_ramfs: lexdpyk.ram_filesystem) -
     return tset
 
 
-async def usertrust_role(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
+async def usertrust_role(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> int:
 
-    verbose: bool = kwargs["verbose"]
-    return await parse_role(message, args, "usertrust-trusted-role", verbose=verbose)
+    return await parse_role(message, args, "usertrust-trusted-role", verbose=ctx.verbose)
 
 
-async def usertrust_count(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
+async def usertrust_count(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> int:
+    if not message.guild:
+        return 1
+
+    COUNT_CONFIG: Final = "usertrust-message-count"
 
     try:
         count = int(args[0])
-    except (ValueError, IndexError):
-        await message.channel.send("ERROR: No int supplied or int is invalid")
-        return 1
+    except ValueError:
+        raise lib_sonnetcommands.CommandError("ERROR: No int is invalid")
+    except IndexError:
+
+        with db_hlapi(message.guild.id) as db:
+            if (v := db.grab_config(COUNT_CONFIG)) is not None:
+                await message.channel.send(f"Usertrust count is set to {v} messages")
+            else:
+                await message.channel.send("Usertrust count is unset")
+
+        return 0
 
     if 2**32 < count or count < 10:
-        await message.channel.send(f"ERROR: Count cannot exceed range 10-{2**32}")
+        raise lib_sonnetcommands.CommandError(f"ERROR: Count cannot exceed range 10-{2**32}")
 
     with db_hlapi(message.guild.id) as db:
-        db.add_config("usertrust-message-count", str(count))
+        db.add_config(COUNT_CONFIG, str(count))
 
     await message.channel.send(f"Updated usertrust message count to {count}")
+    return 0
 
 
-async def set_usertrust_use(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
+async def set_usertrust_use(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> int:
+    if not message.guild:
+        return 1
 
     if args:
         gate = bool(parse_boolean(args[0]))
         with db_hlapi(message.guild.id) as db:
             db.add_config("usertrust-enabled", str(int(gate)))
-            if kwargs["verbose"]: await message.channel.send(f"Set usertrust enabled to {bool(gate)}")
+            if ctx.verbose: await message.channel.send(f"Set usertrust enabled to {bool(gate)}")
     else:
         with db_hlapi(message.guild.id) as db:
             gate = bool(int(db.grab_config("usertrust-enabled") or "0"))
         await message.channel.send(f"Usertrust enabled is {bool(gate)}")
 
+    return 0
 
-async def get_users_trust(message: discord.Message, args: List[str], client: discord.Client, **kwargs: Any) -> Any:
 
-    try:
-        user, _ = await parse_user_member(message, args, client, default_self=True)
-    except lib_parsers.errors.user_parse_error:
+async def get_users_trust(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> int:
+    if not message.guild:
         return 1
+
+    user, _ = await parse_user_member_noexcept(message, args, client, default_self=True)
 
     t_count: int
 
@@ -86,11 +105,12 @@ async def get_users_trust(message: discord.Message, args: List[str], client: dis
         else:
             t_count = 0
 
-    trusted = get_trust_pool(message.guild, kwargs["kernel_ramfs"])
+    trusted = get_trust_pool(message.guild, ctx.kernel_ramfs)
 
     fmt = f"```\nUser: {user}\nMcount: {t_count}\nHas Trusted Role: {user.id in trusted}\n```"
 
     await message.channel.send(fmt)
+    return 0
 
 
 category_info = {'name': 'usertrust', 'pretty_name': 'User Trust', 'description': 'Commands to configure the user trust system'}
@@ -128,4 +148,4 @@ commands = {
         },
     }
 
-version_info: str = "ut-1.0.2"
+version_info: str = "ut-1.0.3"
