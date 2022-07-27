@@ -48,9 +48,16 @@ async def cont_echo(message: discord.Message, args: List[str], client: discord.C
 
 
 async def bot_update(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> None:
-    proc = await asyncio.create_subprocess_exec("git", "pull")
-    await proc.wait()
-    await message.channel.send(f"returned {proc.returncode}")
+
+    proc = await asyncio.create_subprocess_exec("git", "pull", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    stdout, stderr = await proc.communicate()
+
+    if stdout or stderr:
+        formatted_out = "\n```\n" + (stdout.decode("utf8") + stderr.decode("utf8"))[:1024] + "```"
+    else:
+        formatted_out = ""
+
+    await message.channel.send(f"Returned {proc.returncode}{formatted_out}")
 
 
 async def get_commit(message: discord.Message, args: List[str], client: discord.Client, ctx: CommandCtx) -> None:
@@ -106,4 +113,4 @@ commands = {
         },
     }
 
-version_info = "ot-1.0.1"
+version_info = "ot-1.0.2"
