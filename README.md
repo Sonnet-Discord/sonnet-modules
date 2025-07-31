@@ -1,3 +1,9 @@
+# NOTICE
+As of 2025-08-01, Sonnet is considered end of life.
+
+No support or updates will be provided, but this repository will remain a public archive.
+
+
 # sonnet-modules
 A repo of sonnet command modules and dlib modules that extend sonnet to more obscure tasks  
 This repo is open to all to submit their own modules or patch others
